@@ -1,10 +1,9 @@
 class Node:
-    document = None
-    parent = None
-    output_break = True
-
     def __init__(self, senior):
         self.id = id(self)
+        self.document = None
+        self.parent = None
+        self.output_breakable = True
         from HeHtml import Document
         if isinstance(senior, Group):
             self.document = senior.document
@@ -22,15 +21,16 @@ class Node:
     def level(self) -> int:
         if self.parent is None:
             return 0
+        if type(self) is Group:
+            return self.parent.level()
         return self.parent.level() + 1
 
 
 class Group(Node):
-    output_break = False
-
     def __init__(self, senior):
         super().__init__(senior)
         self.children = {}
+        self.output_break = False
         self._create = None
 
     def create(self):
@@ -49,59 +49,66 @@ class Group(Node):
 
 
 class Text(Node):
-    output_break = False
-
-    def __init__(self, senior, content: str = ""):
+    def __init__(self, senior, content: str = None):
         super().__init__(senior)
-        self.content = content
+        self.output_break = False
+        self.content = content if content is not None else ""
 
     def output(self):
         import html
+        self.document.output_next_breakable = False
         return f"{html.escape(self.content)}"
 
 
 class Code(Node):
-
-    output_break = False
-
-    def __init__(self, senior, source: str = ""):
+    def __init__(self, senior, source: str = None):
         super().__init__(senior)
-        self.source = source
+        self.output_break = False
+        self.source = source if source is not None else ""
 
     def output(self):
+        self.document.output_next_breakable = False
         return f"{self.source}"
 
 
 class Comment(Node):
-    def __init__(self, senior, comment: str = ""):
+    def __init__(self, senior, comment: str = None):
         super().__init__(senior)
-        self.comment = comment
+        self.comment = comment if comment is not None else ""
 
     def output(self):
         import html
-        return f"<!--[{html.escape(self.comment)}]-->"
+        s = ""
+        if self.document.output_break:
+            s += "\n" + self.document.output_retraction * self.level()
+        s += f"<!--[{html.escape(self.comment)}]-->"
+        self.document.output_next_breakable = True
+        return s
 
 
 class Tag(Group):
-    name: str
-    output_break_inner = True
-
     def __init__(self, senior, name: str = None, content: str = None):
         super().__init__(senior)
+        self.output_breakable = True
         self.name = name if name is not None else self.__class__.__name__
         if content is not None:
-            pass
+            self.create().Node().Text(content)
 
     def output(self):
         s = ""
-        if self.output_break:
-            if self.level() != 0:
-                s += "\n"
-            s += "	" * self.level()
+        if self.document.output_break:
+            if self.output_breakable and self.document.output_next_breakable:
+                if self.level() > 0:
+                    s += "\n"
+            s += self.document.output_retraction * self.level()
         s += "<" + self.name
         s += ">"
-        s += super().output()
-        if self.output_break_inner:
-            s += "\n" + "	" * self.level()
+        self.document.output_next_breakable = True
+        si = super().output()
+        s += si
+        if self.document.output_break:
+            if si != "" and self.document.output_next_breakable:
+                s += "\n" + "	" * self.level()
         s += "</" + self.name + ">"
+        self.document.output_next_breakable = True
         return s

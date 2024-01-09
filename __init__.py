@@ -1,24 +1,24 @@
 class Document:
-    import HeHtml.Tags
-    html: HeHtml.Tags.html
-
     def __init__(self):
         self. elements = {}
         self._create = None
-        self.title = ""
         import HeHtml.Tags
-        self.html = HeHtml.Tags.html(self)
-        self.html.head = self.html.create().Tag().head()
-        self.html.head.title = self.html.head.create().Tag().title()
-        self.html.body = self.html.create().Tag().body()
+        self.html_root = HeHtml.Tags.html(self)
+        self.output_break = True
+        self.output_retraction = "	"
+        self.output_next_breakable = True
 
     def create(self):
         if self._create is None:
             self._create = _create(self)
         return self._create
 
+    def HtmlRoot(self):
+        return self.html_root
+
     def output(self):
-        return self.html.output()
+        s = ""
+        return self.HtmlRoot().output()
 
 
 # 创建节点
@@ -30,9 +30,21 @@ class _create_nodes:
         from HeHtml.Nodes import Group
         return Group(self.senior)
 
-    def Tag(self, name: str):
+    def Text(self, content: str = None):
+        from HeHtml.Nodes import Text
+        return Text(self.senior, content)
+
+    def Code(self, source: str = None):
+        from HeHtml.Nodes import Code
+        return Code(self.senior, source)
+
+    def Comment(self, comment: str = None):
+        from HeHtml.Nodes import Comment
+        return Comment(self.senior, comment)
+
+    def Tag(self, name: str, content: str = None):
         from HeHtml.Nodes import Tag
-        return Tag(self.senior, name)
+        return Tag(self.senior, name, content)
 
 
 # 创建节点标签
@@ -52,9 +64,13 @@ class _create_tags:
         from HeHtml.Tags import head
         return head(self.senior)
 
-    def span(self):
+    def link(self, url: str = None):
+        from HeHtml.Tags import link
+        return link(self.senior, url)
+
+    def span(self, content: str = None):
         from HeHtml.Tags import span
-        return span(self.senior)
+        return span(self.senior, content)
 
     def title(self):
         from HeHtml.Tags import title
